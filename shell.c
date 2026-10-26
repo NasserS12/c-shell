@@ -15,7 +15,17 @@ int main(void) {
             printf("\n");
             break;
         }
-        printf("you write : %s",line);
+        if (line[len - 1] == '\n'){
+            line[len - 1] = '\0';
+        }
+        if(*line == '\0'){
+            continue;
+        }
+
+        if (strcmp(line, "exit") == 0){
+            break;
+        }
+        printf("you write : %s\n",line);
     }
     free(line);
     return 0;
