@@ -18,14 +18,19 @@ int main(void) {
         if (line[len - 1] == '\n'){
             line[len - 1] = '\0';
         }
-        if(*line == '\0'){
+
+        char *hold_word = strtok(line, " ");
+        if(hold_word == NULL){
             continue;
         }
-
-        if (strcmp(line, "exit") == 0){
+        if (strcmp(hold_word, "exit") == 0){
             break;
         }
-        printf("you write : %s\n",line);
+        while (hold_word != NULL)
+        {
+            printf("word: %s\n",hold_word);
+            hold_word = strtok(NULL, " ");
+        }                
     }
     free(line);
     return 0;
