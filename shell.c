@@ -2,6 +2,9 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <sys/wait.h>
+#include <unistd.h>
+
 
 int main(void) {
 
@@ -11,7 +14,7 @@ int main(void) {
     {
         char *args[64];
         int i = 0;
-        int j = 0;
+
         printf("$ ");
         fflush(stdout);
 
@@ -38,14 +41,28 @@ int main(void) {
             hold_word = strtok(NULL, " \t");
         }
         args[i] = NULL;   
-        while (args[j] != NULL)
-        {
-            if (j > 0) printf(" ");
-            printf("%s",args[j]);
-            j++;
-        }
-        printf("\n");
         
+        if(strcmp(args[0], "cd") == 0){
+            if(args[1] == NULL){
+                char *return_home = getenv("HOME");
+                chdir(return_home);
+            }else{
+                if(chdir(args[1]) == -1){
+                perror(args[1]);
+                }
+            }
+            continue;
+        }
+        
+        pid_t pid = fork();
+        
+        if(pid == 0){
+            execvp(args[0], args);
+            perror(args[0]);
+            exit(1);
+        }else{
+            waitpid(pid , NULL, 0);
+        }
                  
     }
     free(line);
