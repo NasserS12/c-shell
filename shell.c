@@ -62,6 +62,20 @@ int main(void) {
             }    
             continue;
         }
+        if(strcmp(args[0], "export") == 0){
+            if(args[1] == NULL){
+                printf("export: missing name\n");  
+                continue;              
+            }
+            char *eq = strchr(args[1], '=');
+            if(eq == NULL){
+                printf("Missing '='\n");
+                continue;
+            }
+            *eq = '\0';
+            setenv(args[1], eq + 1, 1);
+            continue;
+        }
         
         pid_t pid = fork();
         
