@@ -38,7 +38,7 @@ int main(void) {
         {
             args[i] = hold_word;
             i++;
-            hold_word = strtok(NULL, " \t");
+            hold_word = strtok(NULL, " ");
         }
         args[i] = NULL;   
         
@@ -51,6 +51,15 @@ int main(void) {
                 perror(args[1]);
                 }
             }
+            continue;
+        }
+        if(strcmp(args[0], "pwd") == 0){
+            char path[4096];
+            if (getcwd(path, sizeof(path)) == NULL){
+                perror("pwd");
+            }else{
+                printf("%s\n", path);
+            }    
             continue;
         }
         
