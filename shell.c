@@ -5,6 +5,7 @@
 #include <sys/wait.h>
 #include <unistd.h>
 
+extern char **environ;
 
 int main(void) {
 
@@ -62,11 +63,18 @@ int main(void) {
             }    
             continue;
         }
+
         if(strcmp(args[0], "export") == 0){
             if(args[1] == NULL){
-                printf("export: missing name\n");  
-                continue;              
-            }
+                int p = 0;
+                while (environ[p] != NULL)
+                {
+                    printf("%s\n",environ[p]);
+                    p++;
+                }
+                continue;
+                
+            } 
             char *eq = strchr(args[1], '=');
             if(eq == NULL){
                 printf("Missing '='\n");
