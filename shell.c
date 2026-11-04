@@ -39,7 +39,7 @@ int main(void) {
         {
             args[i] = hold_word;
             i++;
-            hold_word = strtok(NULL, " ");
+            hold_word = strtok(NULL, " \t");
         }
         args[i] = NULL;   
         
@@ -86,6 +86,10 @@ int main(void) {
         }
         
         pid_t pid = fork();
+        if(pid == -1){
+            perror("fork");
+            continue;
+        }
         
         if(pid == 0){
             execvp(args[0], args);
