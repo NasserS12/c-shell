@@ -81,14 +81,20 @@ int main(void) {
       setenv(args[1], eq + 1, 1);
       continue;
     }
+
+    char *infile = NULL;
     char *outfile = NULL;
-    for(int k = 0; args[k] != NULL; k++){
+    for(int k = 0; k < i; k++){
         if(strcmp(args[k], ">") == 0){
             outfile = args[k + 1];
             args[k] =  NULL;
-            break;
+        }else if (strcmp(args[k], "<") == 0){
+          infile = args[k + 1];
+          args[k] = NULL;
+           
         }
     }
+
 
     pid_t pid = fork();
     if (pid == -1) {
@@ -97,6 +103,15 @@ int main(void) {
     }
 
     if (pid == 0) {
+      if(infile != NULL){
+        int fo = open(infile, O_RDONLY);
+        if(fo == -1){
+          perror(infile);
+          exit(1);
+        }
+        dup2(fo,0);
+        close(fo);
+      }
         if(outfile != NULL){
             int fd = open(outfile, O_WRONLY | O_CREAT | O_TRUNC, 0644);
             if(fd == -1){
