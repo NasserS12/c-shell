@@ -82,22 +82,41 @@ int main(void) {
       continue;
     }
 
+    int bad = 0;
     int append = 0;
     char *infile = NULL;
     char *outfile = NULL;
     for(int k = 0; k < i; k++){
         if(strcmp(args[k], ">") == 0){
-            outfile = args[k + 1];
-            args[k] =  NULL;
+          if(args[k + 1] == NULL){
+            printf("syntax error: missing file name\n");
+            bad = 1;
+            break;
+          }
+          outfile = args[k + 1];
+          args[k] =  NULL;
         }else if (strcmp(args[k], "<") == 0){
+            if(args[k + 1] == NULL){
+              printf("syntax error: missing file name\n");
+              bad = 1;
+              break;
+            }
           infile = args[k + 1];
           args[k] = NULL;
         }else if (strcmp(args[k], ">>") == 0){
+            if(args[k + 1] == NULL){
+            printf("syntax error: missing file name\n");
+            bad = 1;
+            break;
+          }
           append = 1;
           outfile = args[k + 1];
           args[k] = NULL;
-
         }
+  }
+
+      if(bad == 1){
+        continue;
     }
 
     pid_t pid = fork();
@@ -109,7 +128,7 @@ int main(void) {
     if (pid == 0) {
       if(infile != NULL){
         int fo = open(infile, O_RDONLY);
-        
+
         if(fo == -1){
           perror(infile);
           exit(1);
