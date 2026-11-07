@@ -82,6 +82,7 @@ int main(void) {
       continue;
     }
 
+    int append = 0;
     char *infile = NULL;
     char *outfile = NULL;
     for(int k = 0; k < i; k++){
@@ -91,10 +92,13 @@ int main(void) {
         }else if (strcmp(args[k], "<") == 0){
           infile = args[k + 1];
           args[k] = NULL;
-           
+        }else if (strcmp(args[k], ">>") == 0){
+          append = 1;
+          outfile = args[k + 1];
+          args[k] = NULL;
+
         }
     }
-
 
     pid_t pid = fork();
     if (pid == -1) {
@@ -105,6 +109,7 @@ int main(void) {
     if (pid == 0) {
       if(infile != NULL){
         int fo = open(infile, O_RDONLY);
+        
         if(fo == -1){
           perror(infile);
           exit(1);
@@ -113,13 +118,20 @@ int main(void) {
         close(fo);
       }
         if(outfile != NULL){
-            int fd = open(outfile, O_WRONLY | O_CREAT | O_TRUNC, 0644);
-            if(fd == -1){
-                perror(outfile);
-                exit(1);
-            }
-            dup2(fd, 1);
-            close(fd);
+          int fd = 0;
+
+          if(append == 1){
+            fd = open(outfile, O_WRONLY | O_CREAT | O_APPEND, 0644);
+          }else{
+            fd = open(outfile, O_WRONLY | O_CREAT | O_TRUNC, 0644);
+          }
+          if(fd == -1){
+              perror(outfile);
+              exit(1);
+          }
+          
+          dup2(fd, 1);
+          close(fd);
         }
       execvp(args[0], args);
       perror(args[0]);
