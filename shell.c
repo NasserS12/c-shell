@@ -86,6 +86,8 @@ int main(void) {
     int append = 0;
     char *infile = NULL;
     char *outfile = NULL;
+    char **cmd2 = NULL;
+
     for(int k = 0; k < i; k++){
         if(strcmp(args[k], ">") == 0){
           if(args[k + 1] == NULL){
@@ -112,11 +114,56 @@ int main(void) {
           append = 1;
           outfile = args[k + 1];
           args[k] = NULL;
+        }else if (strcmp(args[k], "|") == 0){
+          if(args[k + 1] == NULL){
+            printf("syntax error: missing command after '|'\n");
+            bad = 1;
+            break;
+          }
+          cmd2 = &args[k + 1];
+          args[k] = NULL;
         }
   }
 
+
       if(bad == 1){
         continue;
+    }
+    
+    if (cmd2 != NULL){
+
+      int fds[2];
+      pipe(fds);
+
+      pid_t pid1 = fork();
+      if (pid1 == 0) {
+          dup2(fds[1],1);
+
+          close(fds[0]);
+          close(fds[1]);
+          execvp(args[0], args);
+
+          perror(args[0]);
+          exit(1);
+      }
+
+      pid_t pid2 = fork();
+      if (pid2 == 0) {
+          dup2(fds[0],0);
+
+          close(fds[0]);
+          close(fds[1]);
+          execvp(cmd2[0],cmd2);
+          perror(cmd2[0]);
+          exit(1);
+      }
+
+      close(fds[0]);
+      close(fds[1]);
+      waitpid(pid1, NULL, 0);
+      waitpid(pid2, NULL, 0);
+
+      continue;
     }
 
     pid_t pid = fork();
