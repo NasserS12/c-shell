@@ -40,6 +40,5 @@ int main(void) {
         p = next_one;
     }
     
-    
     return 0;
 }

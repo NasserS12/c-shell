@@ -5,13 +5,35 @@
 #include <sys/wait.h>
 #include <unistd.h>
 #include <fcntl.h>
+#include <signal.h>
 
 extern char **environ;
+volatile sig_atomic_t running = 0;
+struct node {
+    char *cmd;
+    struct node *next;
+};
+
+void handle_sigint(int sig) {
+  if(running == 1){
+    write(1, "\n", 1);
+  }else{
+    write(1, "\n$ ", 3);
+  }
+}
 
 int main(void) {
+  struct sigaction sa = {0};
+  sa.sa_handler = handle_sigint;
+  sa.sa_flags = SA_RESTART;
+  sigaction(SIGINT, &sa, NULL);
 
   char *line = NULL;
   size_t size = 0;
+
+  struct node *head = NULL;
+  struct node *tail = NULL;
+
   while (1) {
     char *args[64];
     int i = 0;
@@ -27,6 +49,20 @@ int main(void) {
     if (line[len - 1] == '\n') {
       line[len - 1] = '\0';
     }
+
+    struct node *n = malloc(sizeof(struct node));
+    n->cmd = strdup(line);
+    n->next = NULL;
+
+    if(head == NULL){
+        head = n;
+        tail = n;
+    }else{
+
+      tail->next = n;
+      tail = n;
+    }
+    
 
     char *hold_word = strtok(line, " \t");
     if (hold_word == NULL) {
@@ -54,11 +90,22 @@ int main(void) {
       continue;
     }
     if (strcmp(args[0], "pwd") == 0) {
+
       char path[4096];
       if (getcwd(path, sizeof(path)) == NULL) {
         perror("pwd");
       } else {
         printf("%s\n", path);
+      }
+      continue;
+    }
+
+    if(strcmp(args[0], "history") == 0){
+      struct node *p = head;
+      while (p != NULL)
+      {
+        printf("%s\n",p->cmd);
+        p = p->next;
       }
       continue;
     }
@@ -135,44 +182,51 @@ int main(void) {
       int fds[2];
       pipe(fds);
 
+      running = 1;
       pid_t pid1 = fork();
       if (pid1 == 0) {
-          dup2(fds[1],1);
+        signal(SIGINT, SIG_DFL);
+        dup2(fds[1],1);
 
-          close(fds[0]);
-          close(fds[1]);
-          execvp(args[0], args);
-
-          perror(args[0]);
-          exit(1);
+        close(fds[0]);
+        close(fds[1]);
+        execvp(args[0], args);
+        perror(args[0]);
+        exit(1);
       }
 
       pid_t pid2 = fork();
       if (pid2 == 0) {
-          dup2(fds[0],0);
+        signal(SIGINT, SIG_DFL);
+        dup2(fds[0],0);
 
-          close(fds[0]);
-          close(fds[1]);
-          execvp(cmd2[0],cmd2);
-          perror(cmd2[0]);
-          exit(1);
+        close(fds[0]);
+        close(fds[1]);
+        execvp(cmd2[0],cmd2);
+        perror(cmd2[0]);
+        exit(1);
       }
 
       close(fds[0]);
       close(fds[1]);
       waitpid(pid1, NULL, 0);
       waitpid(pid2, NULL, 0);
+      running = 0;
 
       continue;
     }
 
+    running = 1;
     pid_t pid = fork();
     if (pid == -1) {
       perror("fork");
+      running = 0;
       continue;
     }
 
     if (pid == 0) {
+      signal(SIGINT, SIG_DFL);
+
       if(infile != NULL){
         int fo = open(infile, O_RDONLY);
 
@@ -204,8 +258,16 @@ int main(void) {
       exit(1);
     } else {
       waitpid(pid, NULL, 0);
+      running = 0;
     }
   }
   free(line);
+  struct node *p = head;
+  while(p != NULL){
+    struct node *next_one = p->next;
+    free(p->cmd);
+    free(p);
+    p = next_one;
+  }
   return 0;
 }
