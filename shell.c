@@ -7,6 +7,9 @@
 #include <fcntl.h>
 #include <signal.h>
 
+struct node *head = NULL;
+struct node *tail = NULL;
+
 extern char **environ;
 volatile sig_atomic_t running = 0;
 struct node {
@@ -23,10 +26,47 @@ void handle_sigint(int sig) {
 }
 
 void do_pwd(void) {
+  char path[4096];
+  if (getcwd(path, sizeof(path)) == NULL){
+    perror("pwd");
+  }else{
+    printf("%s\n", path);
+  }
 
 }
 
-int main(void) {
+void do_cd(char **args){
+	if(args[1] == NULL) {
+		char *return_home = getenv("HOME");
+		chdir(return_home);
+	}else{
+		if(chdir(args[1]) == -1){
+			perror(args[1]);
+		}
+	}
+
+}
+
+void do_export(char **args){
+	if(args[1] == NULL){
+		int p = 0;
+		while (environ[p] != NULL){
+			printf("%s\n", environ[p]);
+			p++;
+		}
+		return;
+	}
+	char *eq = strchr(args[1], '=');
+	if(eq == NULL){
+		printf("Missing '='\n");
+		return;
+	}
+	*eq = '\0';
+	setenv(args[1], eq + 1, 1);
+}
+
+
+int main(void){ 
   struct sigaction sa = {0};
   sa.sa_handler = handle_sigint;
   sa.sa_flags = SA_RESTART;
@@ -34,9 +74,6 @@ int main(void) {
 
   char *line = NULL;
   size_t size = 0;
-
-  struct node *head = NULL;
-  struct node *tail = NULL;
 
   while (1) {
     char *args[64];
@@ -83,24 +120,12 @@ int main(void) {
     args[i] = NULL;
 
     if (strcmp(args[0], "cd") == 0) {
-      if (args[1] == NULL) {
-        char *return_home = getenv("HOME");
-        chdir(return_home);
-      } else {
-        if (chdir(args[1]) == -1) {
-          perror(args[1]);
-        }
-      }
+      do_cd(args);
       continue;
     }
-    if (strcmp(args[0], "pwd") == 0) {
 
-      char path[4096];
-      if (getcwd(path, sizeof(path)) == NULL) {
-        perror("pwd");
-      } else {
-        printf("%s\n", path);
-      }
+    if (strcmp(args[0], "pwd") == 0) {
+      do_pwd();
       continue;
     }
 
@@ -115,23 +140,10 @@ int main(void) {
     }
 
     if (strcmp(args[0], "export") == 0) {
-      if (args[1] == NULL) {
-        int p = 0;
-        while (environ[p] != NULL) {
-          printf("%s\n", environ[p]);
-          p++;
-        }
+      	do_export(args);
         continue;
       }
-      char *eq = strchr(args[1], '=');
-      if (eq == NULL) {
-        printf("Missing '='\n");
-        continue;
-      }
-      *eq = '\0';
-      setenv(args[1], eq + 1, 1);
-      continue;
-    }
+      
 
     int bad = 0;
     int append = 0;
