@@ -10,6 +10,7 @@
 extern char **environ;
 volatile sig_atomic_t running = 0;
 struct node {
+
     char *cmd;
     struct node *next;
 };
@@ -18,6 +19,7 @@ struct node *head = NULL;
 struct node *tail = NULL;
 
 struct command {
+  
     int append;
     char *infile;
     char *outfile;
@@ -160,6 +162,40 @@ int parse_redirects(char **args, int i, struct command *cmd){
   return 0;
 }
 
+void run_pipe(char **args, char **cmd2){
+  int fds[2];
+  pipe(fds);
+
+  running = 1;
+  pid_t pid1 = fork();
+  if (pid1 == 0) {
+    signal(SIGINT, SIG_DFL);
+    dup2(fds[1], 1);
+    close(fds[0]);
+    close(fds[1]);
+    execvp(args[0], args);
+    perror(args[0]);
+    exit(1);
+  }
+
+  pid_t pid2 = fork();
+  if (pid2 == 0) {
+    signal(SIGINT, SIG_DFL);
+    dup2(fds[0], 0);
+    close(fds[0]);
+    close(fds[1]);
+    execvp(cmd2[0], cmd2);
+    perror(cmd2[0]);
+    exit(1);
+  }
+
+  close(fds[0]);
+  close(fds[1]);
+  waitpid(pid1, NULL, 0);
+  waitpid(pid2, NULL, 0);
+  running = 0;
+}
+
 int main(void){
   struct sigaction sa = {0};
   sa.sa_handler = handle_sigint;
@@ -221,41 +257,7 @@ int main(void){
     }
 
     if (cmd.cmd2 != NULL){
-
-      int fds[2];
-      pipe(fds);
-
-      running = 1;
-      pid_t pid1 = fork();
-      if (pid1 == 0) {
-        signal(SIGINT, SIG_DFL);
-        dup2(fds[1],1);
-
-        close(fds[0]);
-        close(fds[1]);
-        execvp(args[0], args);
-        perror(args[0]);
-        exit(1);
-      }
-
-      pid_t pid2 = fork();
-      if (pid2 == 0) {
-        signal(SIGINT, SIG_DFL);
-        dup2(fds[0],0);
-
-        close(fds[0]);
-        close(fds[1]);
-        execvp(cmd.cmd2[0], cmd.cmd2);
-        perror(cmd.cmd2[0]);
-        exit(1);
-      }
-
-      close(fds[0]);
-      close(fds[1]);
-      waitpid(pid1, NULL, 0);
-      waitpid(pid2, NULL, 0);
-      running = 0;
-
+      run_pipe(args, cmd.cmd2);
       continue;
     }
 
