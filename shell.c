@@ -17,6 +17,13 @@ struct node {
 struct node *head = NULL;
 struct node *tail = NULL;
 
+struct command {
+    int append;
+    char *infile;
+    char *outfile;
+    char **cmd2;
+};
+
 void handle_sigint(int sig) {
   if(running == 1){
     write(1, "\n", 1);
@@ -66,7 +73,7 @@ void do_export(char **args){
 }
 
 void add_history(char *line){
-  
+
   struct node *n = malloc(sizeof(struct node));
   n->cmd = strdup(line);
   n->next = NULL;
@@ -113,9 +120,47 @@ int parse_line(char *line, char **args){
       hold_word = strtok(NULL, " \t");
   }
   args[i] = NULL;
+  return i;
 }
 
-int main(void){ 
+int parse_redirects(char **args, int i, struct command *cmd){
+
+  for(int k = 0; k < i; k++){
+    if(strcmp(args[k], ">") == 0){
+      if(args[k + 1] == NULL){
+        printf("syntax error: missing file name\n");
+        return 1;
+      }
+      cmd->outfile = args[k + 1];
+      args[k] = NULL;
+    }else if (strcmp(args[k], "<") == 0){
+      if(args[k + 1] == NULL){
+        printf("syntax error: missing file name\n");
+        return 1;
+      }
+      cmd->infile = args[k + 1];
+      args[k] = NULL;
+    }else if (strcmp(args[k], ">>") == 0){
+      if(args[k + 1] == NULL){
+        printf("syntax error: missing file name\n");
+        return 1;
+      }
+      cmd->append = 1;
+      cmd->outfile = args[k + 1];
+      args[k] = NULL;
+    }else if (strcmp(args[k], "|") == 0){
+      if(args[k + 1] == NULL){
+        printf("syntax error: missing command after '|'\n");
+        return 1;
+      }
+      cmd->cmd2 = &args[k + 1];
+      args[k] = NULL;
+    }
+  }
+  return 0;
+}
+
+int main(void){
   struct sigaction sa = {0};
   sa.sa_handler = handle_sigint;
   sa.sa_flags = SA_RESTART;
@@ -138,7 +183,7 @@ int main(void){
     if (line[len - 1] == '\n') {
       line[len - 1] = '\0';
     }
-    
+
     add_history(line);
 
     int i = parse_line(line, args);
@@ -165,60 +210,17 @@ int main(void){
     }
 
     if (strcmp(args[0], "export") == 0) {
-      	do_export(args);
-        continue;
-      }
-      
-
-    int bad = 0;
-    int append = 0;
-    char *infile = NULL;
-    char *outfile = NULL;
-    char **cmd2 = NULL;
-
-    for(int k = 0; k < i; k++){
-        if(strcmp(args[k], ">") == 0){
-          if(args[k + 1] == NULL){
-            printf("syntax error: missing file name\n");
-            bad = 1;
-            break;
-          }
-          outfile = args[k + 1];
-          args[k] =  NULL;
-        }else if (strcmp(args[k], "<") == 0){
-            if(args[k + 1] == NULL){
-              printf("syntax error: missing file name\n");
-              bad = 1;
-              break;
-            }
-          infile = args[k + 1];
-          args[k] = NULL;
-        }else if (strcmp(args[k], ">>") == 0){
-            if(args[k + 1] == NULL){
-            printf("syntax error: missing file name\n");
-            bad = 1;
-            break;
-          }
-          append = 1;
-          outfile = args[k + 1];
-          args[k] = NULL;
-        }else if (strcmp(args[k], "|") == 0){
-          if(args[k + 1] == NULL){
-            printf("syntax error: missing command after '|'\n");
-            bad = 1;
-            break;
-          }
-          cmd2 = &args[k + 1];
-          args[k] = NULL;
-        }
-  }
-
-
-      if(bad == 1){
-        continue;
+      do_export(args);
+      continue;
     }
-    
-    if (cmd2 != NULL){
+
+    struct command cmd = {0};
+    int bad = parse_redirects(args, i, &cmd);
+    if(bad == 1){
+      continue;
+    }
+
+    if (cmd.cmd2 != NULL){
 
       int fds[2];
       pipe(fds);
@@ -243,8 +245,8 @@ int main(void){
 
         close(fds[0]);
         close(fds[1]);
-        execvp(cmd2[0],cmd2);
-        perror(cmd2[0]);
+        execvp(cmd.cmd2[0], cmd.cmd2);
+        perror(cmd.cmd2[0]);
         exit(1);
       }
 
@@ -268,32 +270,32 @@ int main(void){
     if (pid == 0) {
       signal(SIGINT, SIG_DFL);
 
-      if(infile != NULL){
-        int fo = open(infile, O_RDONLY);
+      if(cmd.infile != NULL){
+        int fo = open(cmd.infile, O_RDONLY);
 
         if(fo == -1){
-          perror(infile);
+          perror(cmd.infile);
           exit(1);
         }
         dup2(fo,0);
         close(fo);
       }
-        if(outfile != NULL){
-          int fd = 0;
+      if(cmd.outfile != NULL){
+        int fd = 0;
 
-          if(append == 1){
-            fd = open(outfile, O_WRONLY | O_CREAT | O_APPEND, 0644);
-          }else{
-            fd = open(outfile, O_WRONLY | O_CREAT | O_TRUNC, 0644);
-          }
-          if(fd == -1){
-              perror(outfile);
-              exit(1);
-          }
-          
-          dup2(fd, 1);
-          close(fd);
+        if(cmd.append == 1){
+          fd = open(cmd.outfile, O_WRONLY | O_CREAT | O_APPEND, 0644);
+        }else{
+          fd = open(cmd.outfile, O_WRONLY | O_CREAT | O_TRUNC, 0644);
         }
+        if(fd == -1){
+          perror(cmd.outfile);
+          exit(1);
+        }
+
+        dup2(fd, 1);
+        close(fd);
+      }
       execvp(args[0], args);
       perror(args[0]);
       exit(1);
