@@ -22,6 +22,10 @@ void handle_sigint(int sig) {
   }
 }
 
+void do_pwd(void) {
+
+}
+
 int main(void) {
   struct sigaction sa = {0};
   sa.sa_handler = handle_sigint;
