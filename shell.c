@@ -99,6 +99,22 @@ void free_history(void){
   }
 }
 
+int parse_line(char *line, char **args){
+  int i = 0;
+
+  char *hold_word = strtok(line, " \t");
+  if (hold_word == NULL) {
+      return 0;
+  }
+
+  while (hold_word != NULL && i < 63) {
+      args[i] = hold_word;
+      i++;
+      hold_word = strtok(NULL, " \t");
+  }
+  args[i] = NULL;
+}
+
 int main(void){ 
   struct sigaction sa = {0};
   sa.sa_handler = handle_sigint;
@@ -110,7 +126,6 @@ int main(void){
 
   while (1) {
     char *args[64];
-    int i = 0;
 
     printf("$ ");
     fflush(stdout);
@@ -126,19 +141,13 @@ int main(void){
     
     add_history(line);
 
-    char *hold_word = strtok(line, " \t");
-    if (hold_word == NULL) {
+    int i = parse_line(line, args);
+    if(i == 0){
       continue;
     }
-    if (strcmp(hold_word, "exit") == 0) {
+    if(strcmp(args[0], "exit") == 0){
       break;
     }
-    while (hold_word != NULL && i < 63) {
-      args[i] = hold_word;
-      i++;
-      hold_word = strtok(NULL, " \t");
-    }
-    args[i] = NULL;
 
     if (strcmp(args[0], "cd") == 0) {
       do_cd(args);
