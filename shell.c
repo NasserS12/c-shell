@@ -7,15 +7,15 @@
 #include <fcntl.h>
 #include <signal.h>
 
-struct node *head = NULL;
-struct node *tail = NULL;
-
 extern char **environ;
 volatile sig_atomic_t running = 0;
 struct node {
     char *cmd;
     struct node *next;
 };
+
+struct node *head = NULL;
+struct node *tail = NULL;
 
 void handle_sigint(int sig) {
   if(running == 1){
@@ -65,6 +65,39 @@ void do_export(char **args){
 	setenv(args[1], eq + 1, 1);
 }
 
+void add_history(char *line){
+  
+  struct node *n = malloc(sizeof(struct node));
+  n->cmd = strdup(line);
+  n->next = NULL;
+
+  if(head == NULL){
+      head = n;
+      tail = n;
+  }else{
+    tail->next = n;
+    tail = n;
+  }
+
+}
+
+void print_history(void) {
+    struct node *p = head;
+    while (p != NULL) {
+        printf("%s\n", p->cmd);
+        p = p->next;
+    }
+}
+
+void free_history(void){
+    struct node *p = head;
+    while(p != NULL){
+      struct node *next_one = p->next;
+      free(p->cmd);
+      free(p);
+      p = next_one;
+  }
+}
 
 int main(void){ 
   struct sigaction sa = {0};
@@ -90,20 +123,8 @@ int main(void){
     if (line[len - 1] == '\n') {
       line[len - 1] = '\0';
     }
-
-    struct node *n = malloc(sizeof(struct node));
-    n->cmd = strdup(line);
-    n->next = NULL;
-
-    if(head == NULL){
-        head = n;
-        tail = n;
-    }else{
-
-      tail->next = n;
-      tail = n;
-    }
     
+    add_history(line);
 
     char *hold_word = strtok(line, " \t");
     if (hold_word == NULL) {
@@ -130,12 +151,7 @@ int main(void){
     }
 
     if(strcmp(args[0], "history") == 0){
-      struct node *p = head;
-      while (p != NULL)
-      {
-        printf("%s\n",p->cmd);
-        p = p->next;
-      }
+      print_history();
       continue;
     }
 
@@ -278,12 +294,6 @@ int main(void){
     }
   }
   free(line);
-  struct node *p = head;
-  while(p != NULL){
-    struct node *next_one = p->next;
-    free(p->cmd);
-    free(p);
-    p = next_one;
-  }
+  free_history();
   return 0;
 }
