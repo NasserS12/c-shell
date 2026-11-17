@@ -10,6 +10,7 @@
 #include "builtins.h"
 #include "parse.h"
 #include "exec.h"
+#include "alias.h"
 
 
 void handle_sigint(int sig) {
@@ -55,6 +56,11 @@ int main(void){
       break;
     }
 
+    char *value = find_alias(args[0]);
+    if(value != NULL){
+      args[0] = value;
+    }
+
     if (strcmp(args[0], "cd") == 0) {
       do_cd(args);
       continue;
@@ -75,6 +81,11 @@ int main(void){
       continue;
     }
 
+    if (strcmp(args[0], "alias") == 0) {
+    do_alias(args);
+    continue;
+    }
+
     struct command cmd = {0};
     int bad = parse_redirects(args, i, &cmd);
     if(bad == 1){
@@ -90,5 +101,6 @@ int main(void){
   }
   free(line);
   free_history();
+  free_table();
   return 0;
 }
