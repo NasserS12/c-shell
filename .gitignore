@@ -1,2 +1,6 @@
 *.o
 shell
+hash
+t.txt
+venv/
+.pytest_cache/
