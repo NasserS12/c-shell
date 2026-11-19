@@ -1,25 +1,23 @@
 shell: shell.o history.o builtins.o parse.o exec.o alias.o
 	gcc -Wall -o shell shell.o history.o builtins.o parse.o exec.o alias.o
 
-history.o: history.c history.h
-	gcc -Wall -c history.c
+shell.o: src/shell.c include/history.h include/builtins.h include/parse.h include/exec.h include/alias.h
+	gcc -Wall -Iinclude -c src/shell.c
 
-parse.o: parse.c parse.h
-	gcc -Wall -c parse.c
+history.o: src/history.c include/history.h
+	gcc -Wall -Iinclude -c src/history.c
 
-exec.o: exec.c exec.h parse.h
-	gcc -Wall -c exec.c
+builtins.o: src/builtins.c include/builtins.h include/alias.h
+	gcc -Wall -Iinclude -c src/builtins.c
 
-shell.o: shell.c history.h builtins.h parse.h exec.h alias.h
-	gcc -Wall -c shell.c
+parse.o: src/parse.c include/parse.h
+	gcc -Wall -Iinclude -c src/parse.c
 
-builtins.o: builtins.c builtins.h alias.h
-	gcc -Wall -c builtins.c
+exec.o: src/exec.c include/exec.h include/parse.h
+	gcc -Wall -Iinclude -c src/exec.c
 
-alias.o: alias.c alias.h
-	gcc -Wall -c alias.c
+alias.o: src/alias.c include/alias.h
+	gcc -Wall -Iinclude -c src/alias.c
 
 clean:
 	rm -f *.o shell
-
-

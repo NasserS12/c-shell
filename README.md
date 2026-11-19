@@ -43,12 +43,12 @@ $ exit
 
 | File | Responsibility |
 |------|----------------|
-| `shell.c` | Main loop: reads input and decides what runs |
-| `parse.c` | Splits the line into words and finds redirections and pipes |
-| `exec.c` | Runs commands and pipes in child processes |
-| `builtins.c` | Built-in commands that must run inside the shell |
-| `history.c` | Command history as a linked list |
-| `alias.c` | Aliases as a hash table |
+| `src/shell.c` | Main loop: reads input and decides what runs |
+| `src/parse.c` | Splits the line into words and finds redirections and pipes |
+| `src/exec.c` | Runs commands and pipes in child processes |
+| `src/builtins.c` | Built-in commands that must run inside the shell |
+| `src/history.c` | Command history as a linked list |
+| `src/alias.c` | Aliases as a hash table |
 
 ## What I learned
 
