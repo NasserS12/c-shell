@@ -48,11 +48,24 @@ void do_export(char **args){
 }
 
 void do_alias(char **args){
+	if(args[1] == NULL){
+		printf("missing value\n");
+		return;
+	}
+
 	char *eq = strchr(args[1], '=');
 	if(eq == NULL){
 		printf("Missing '='\n");
 		return;
 	}
 	*eq = '\0';
-	add_alias(args[1], eq + 1);
+	
+	char value[1024];
+	strcpy(value, eq + 1);
+	for(int p = 2; args[p] != NULL; p++){
+		strcat(value, " ");
+		strcat(value, args[p]);
+	}
+
+	add_alias(args[1], value);
 }

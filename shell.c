@@ -32,6 +32,7 @@ int main(void){
   size_t size = 0;
 
   while (1) {
+    char new_line[1024];
     char *args[64];
 
     printf("$ ");
@@ -52,13 +53,22 @@ int main(void){
     if(i == 0){
       continue;
     }
+
     if(strcmp(args[0], "exit") == 0){
       break;
     }
 
     char *value = find_alias(args[0]);
     if(value != NULL){
-      args[0] = value;
+      strcpy(new_line, value);
+      for(int x = 1; args[x] != NULL; x++){
+        strcat(new_line, " ");
+        strcat(new_line, args[x]);
+      }
+      i = parse_line(new_line, args);
+      if(i == 0){
+        continue;
+      }
     }
 
     if (strcmp(args[0], "cd") == 0) {
